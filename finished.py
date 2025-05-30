@@ -12,8 +12,8 @@ class Turret:
         self.stand = pg.image.load("sprites/turret_stand.png")
         self.gun = pg.image.load("sprites/turret.png")
 
-    def can_detect_player(self, player_rect, obstacles):
-        to_player = pg.Vector2(player_rect.center) - self.position
+    def can_detect_player(self, player_pos, obstacles):
+        to_player = player_pos - self.position
 
         # Too far away?
         if to_player.length() > self.max_distance:
@@ -33,15 +33,15 @@ class Turret:
 
         # Check if any obstacle blocks the view
         for _, rect in obstacles:
-            if rect.clipline(self.position, player_rect.center):
+            if rect.clipline(self.position, player_pos):
                 return False
 
         return True
 
-    def update_rotation(self):
-        if self.can_detect_player(player_rect, obstacles):
+    def update_rotation(self, player_pos, obstacles):
+        if self.can_detect_player(player_pos, obstacles):
             # Calculate angle from turret to player
-            direction = pg.Vector2(player_rect.center) - self.position
+            direction = player_pos - self.position
             self.angle = -degrees(atan2(direction.y, direction.x))
     
     def draw(self, screen):
@@ -72,7 +72,7 @@ clock = pg.time.Clock()
 FPS = 60
 
 player = pg.image.load("sprites/player.png")
-player_rect = player.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+player_pos = pg.Vector2(WIDTH // 2, HEIGHT // 2)
 player_rotation = 0
 
 obstacles = []
@@ -85,7 +85,7 @@ def create_obstacle(pos):
     rect = image.get_rect(center=pos)
     obstacles.append((image, rect))
 
-def update_player():
+def get_player_position_and_rotation():
     speed = 3.5
 
     keys = pg.key.get_pressed()
@@ -93,11 +93,11 @@ def update_player():
     direction = pg.Vector2(keys[pg.K_d] - keys[pg.K_a], keys[pg.K_s] - keys[pg.K_w])
 
     if direction.length() > 0:
-        player_rect.move_ip(direction.normalize() * speed)
+        player_pos + direction.normalize() * speed
 
-        return -degrees(atan2(direction.y, direction.x))
+        return (player_pos + direction.normalize() * speed, -degrees(atan2(direction.y, direction.x)))
     
-    return player_rotation
+    return (player_pos, player_rotation)
 
 
 running = True
@@ -108,16 +108,16 @@ while running:
         if event.type == pg.MOUSEBUTTONDOWN:
             create_obstacle(event.pos)
 
-    player_rotation = update_player()
-    turret_1.update_rotation()
-    turret_2.update_rotation()
+    player_pos, player_rotation = get_player_position_and_rotation()
+    turret_1.update_rotation(player_pos, obstacles)
+    turret_2.update_rotation(player_pos, obstacles)
 
     screen.fill("#339131")
 
     screen.blits(obstacles)
 
     rotated_player = pg.transform.rotate(player, player_rotation)
-    rotated_rect = rotated_player.get_rect(center=player_rect.center)
+    rotated_rect = rotated_player.get_rect(center=player_pos)
     screen.blit(rotated_player, rotated_rect)
     
     turret_1.draw(screen)
