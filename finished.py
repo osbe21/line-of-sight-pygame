@@ -45,11 +45,13 @@ class Turret:
             self.angle = -degrees(atan2(direction.y, direction.x))
     
     def draw(self, screen):
+        self.draw_fov_cone(screen)
+
         screen.blit(self.stand, self.stand.get_rect(center=self.position))
         rotated_gun = pg.transform.rotate(self.gun, self.angle)
         screen.blit(rotated_gun, rotated_gun.get_rect(center=self.position))
 
-        # Draw arc visualization
+    def draw_fov_cone(self, screen):
         cone_surface = pg.Surface((WIDTH, HEIGHT), pg.SRCALPHA)
 
         start_angle = self.angle - self.max_angle/2
