@@ -44,6 +44,16 @@ class Turret:
         rotated_gun = pg.transform.rotate(self.gun, self.angle)
         screen.blit(rotated_gun, rotated_gun.get_rect(center=self.position))
 
+        # Draw arc visualization
+        size = self.max_distance * 2
+        arc_rect = pg.Rect(0, 0, size, size)
+        arc_rect.center = self.position
+
+        start_angle = radians(self.angle - self.max_angle/2)
+        stop_angle = radians(self.angle + self.max_angle/2)
+
+        pg.draw.arc(screen, "red", arc_rect, start_angle, stop_angle)
+
 
 pg.init()
 WIDTH, HEIGHT = 800, 600
@@ -53,10 +63,11 @@ FPS = 60
 
 player = pg.image.load("sprites/player.png")
 player_rect = player.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+player_rotation = 0
 
 background = pg.Surface((WIDTH, HEIGHT))
 obstacles = []
-turret = Turret(position=(250, 200), angle_deg=0, max_distance=400, max_angle_deg=90)
+turret = Turret(position=(250, 200), angle_deg=0, max_distance=200, max_angle_deg=90)
 
 
 def create_obstacle(pos):
@@ -64,9 +75,7 @@ def create_obstacle(pos):
     rect = image.get_rect(center=pos)
     obstacles.append((image, rect))
 
-    obstacles.append((image, rect))
-
-def update_player_position():
+def update_player():
     speed = 3.5
 
     keys = pg.key.get_pressed()
@@ -75,6 +84,10 @@ def update_player_position():
 
     if direction.length() > 0:
         player_rect.move_ip(direction.normalize() * speed)
+
+        return -degrees(atan2(direction.y, direction.x))
+    
+    return player_rotation
 
 def create_background():
     tiles = [pg.image.load(f"sprites/tile_0{i}.png").convert() for i in range(1, 5)]
@@ -95,20 +108,20 @@ while running:
         if event.type == pg.MOUSEBUTTONDOWN:
             create_obstacle(event.pos)
 
-    update_player_position()
+    player_rotation = update_player()
 
     if turret.can_detect_player(player_rect, obstacles):
         # Calculate angle from turret to player
         direction = pg.Vector2(player_rect.center) - turret.position
         turret.angle = -degrees(atan2(direction.y, direction.x))
 
-    screen.fill((0, 0, 0))
-
-    # Draw everything
     screen.blit(background, (0, 0))
     turret.draw(screen)
-    screen.blit(player, player_rect)
     screen.blits(obstacles)
+
+    rotated_player = pg.transform.rotate(player, player_rotation)
+    rotated_rect = rotated_player.get_rect(center=player_rect.center)
+    screen.blit(rotated_player, rotated_rect)
 
     pg.display.flip()
     clock.tick(FPS)
