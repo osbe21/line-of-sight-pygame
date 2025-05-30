@@ -1,6 +1,5 @@
 import pygame as pg
-from random import choice  # Used for making background
-from math import sin, cos, atan2, radians, degrees
+from math import sin, cos, atan2, radians, degrees, floor, ceil
 
 
 class Turret:
@@ -38,6 +37,12 @@ class Turret:
                 return False
 
         return True
+
+    def update_rotation(self):
+        if self.can_detect_player(player_rect, obstacles):
+            # Calculate angle from turret to player
+            direction = pg.Vector2(player_rect.center) - self.position
+            self.angle = -degrees(atan2(direction.y, direction.x))
     
     def draw(self, screen):
         screen.blit(self.stand, self.stand.get_rect(center=self.position))
@@ -45,14 +50,19 @@ class Turret:
         screen.blit(rotated_gun, rotated_gun.get_rect(center=self.position))
 
         # Draw arc visualization
-        size = self.max_distance * 2
-        arc_rect = pg.Rect(0, 0, size, size)
-        arc_rect.center = self.position
+        cone_surface = pg.Surface((WIDTH, HEIGHT), pg.SRCALPHA)
 
-        start_angle = radians(self.angle - self.max_angle/2)
-        stop_angle = radians(self.angle + self.max_angle/2)
+        start_angle = self.angle - self.max_angle/2
+        stop_angle = self.angle + self.max_angle/2
 
-        pg.draw.arc(screen, "red", arc_rect, start_angle, stop_angle)
+        points = [self.position]
+        for angle in range(floor(start_angle), ceil(stop_angle)):
+            vec = pg.Vector2.from_polar((self.max_distance, -angle))
+            points.append(self.position + vec)
+        
+        pg.draw.polygon(cone_surface, (255, 0, 0, 80), points)
+
+        screen.blit(cone_surface, (0, 0))
 
 
 pg.init()
@@ -65,9 +75,9 @@ player = pg.image.load("sprites/player.png")
 player_rect = player.get_rect(center=(WIDTH // 2, HEIGHT // 2))
 player_rotation = 0
 
-background = pg.Surface((WIDTH, HEIGHT))
 obstacles = []
-turret = Turret(position=(250, 200), angle_deg=0, max_distance=200, max_angle_deg=90)
+turret_1 = Turret(position=(200, 200), angle_deg=0, max_distance=250, max_angle_deg=90)
+turret_2 = Turret(position=(550, 200), angle_deg=270, max_distance=250, max_angle_deg=90)
 
 
 def create_obstacle(pos):
@@ -89,16 +99,6 @@ def update_player():
     
     return player_rotation
 
-def create_background():
-    tiles = [pg.image.load(f"sprites/tile_0{i}.png").convert() for i in range(1, 5)]
-    tile_size = tiles[0].get_width()
-
-    for x in range(0, WIDTH, tile_size):
-        for y in range(0, HEIGHT, tile_size):
-            background.blit(choice(tiles), (x, y))
-
-
-create_background()
 
 running = True
 while running:
@@ -109,19 +109,19 @@ while running:
             create_obstacle(event.pos)
 
     player_rotation = update_player()
+    turret_1.update_rotation()
+    turret_2.update_rotation()
 
-    if turret.can_detect_player(player_rect, obstacles):
-        # Calculate angle from turret to player
-        direction = pg.Vector2(player_rect.center) - turret.position
-        turret.angle = -degrees(atan2(direction.y, direction.x))
+    screen.fill("#339131")
 
-    screen.blit(background, (0, 0))
-    turret.draw(screen)
     screen.blits(obstacles)
 
     rotated_player = pg.transform.rotate(player, player_rotation)
     rotated_rect = rotated_player.get_rect(center=player_rect.center)
     screen.blit(rotated_player, rotated_rect)
+    
+    turret_1.draw(screen)
+    turret_2.draw(screen)
 
     pg.display.flip()
     clock.tick(FPS)
