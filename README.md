@@ -1,7 +1,7 @@
 # Line Of Sight in PyGame
 
 Video link:
-_TODO: add link after publishing_  
+https://youtu.be/dzDCg3oIzFQ  
 
 Assets used:
  - https://kenney.nl/assets/top-down-shooter 
