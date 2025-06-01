@@ -1,3 +1,4 @@
 {
-    "scm.diffDecorations": "none"
+    "scm.diffDecorations": "none",
+    "editor.cursorBlinking": "solid"
 }
